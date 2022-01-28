@@ -1,5 +1,9 @@
 ﻿@page "/fetchdata"
-@inject HttpClient Http
+@using GestaoEstadoFluxor.Features.FetchData.Store
+@inherits FluxorComponent
+@inject IDispatcher dispatcher
+@inject IState<FetchDataState> fetchDataState
+
 
 <PageTitle>Weather forecast</PageTitle>
 
@@ -7,7 +11,7 @@
 
 <p>This component demonstrates fetching data from the server.</p>
 
-@if (forecasts == null)
+@if (Loading)
 {
     <p><em>Loading...</em></p>
 }
@@ -34,24 +38,27 @@ else
             }
         </tbody>
     </table>
+
+    <button class="btn btn-default" @onclick="LoadData">Refresh</button>
 }
 
 @code {
-    private WeatherForecast[]? forecasts;
+    private bool Initialized => fetchDataState.Value.Initialized;
+    private bool Loading => fetchDataState.Value.Loading;
+    private WeatherForecast[]? forecasts => fetchDataState.Value.Forecasts;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("sample-data/weather.json");
+        if (!Initialized)
+        {
+            LoadData();
+            dispatcher.Dispatch(new SetInitialized());
+        }
+        base.OnInitialized();
     }
 
-    public class WeatherForecast
+    void LoadData()
     {
-        public DateTime Date { get; set; }
-
-        public int TemperatureC { get; set; }
-
-        public string? Summary { get; set; }
-
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+        dispatcher.Dispatch(new LoadData());
     }
 }
